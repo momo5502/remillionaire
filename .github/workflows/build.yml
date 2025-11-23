@@ -1,0 +1,82 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - Windows x86_64
+          - macOS arm64
+        configuration:
+          #- Debug
+          - RelWithDebInfo
+        include:
+          - platform: Windows x86_64
+            runner: windows-latest
+            devcmd_arch: x64
+            c_compiler: clang-cl
+            cxx_compiler: clang-cl
+          - platform: macOS arm64
+            runner: macos-latest
+            c_compiler: clang
+            cxx_compiler: clang++
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v6
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        if: ${{ startsWith(matrix.platform, 'Windows') }}
+        with:
+          version: "20"
+
+      - name: Enable Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+        if: ${{ startsWith(matrix.platform, 'Windows') }}
+        with:
+          arch: ${{ matrix.devcmd_arch }}
+
+      - name: Configure Dependencies
+        run: cmake -B dependencies/build -S dependencies -G Ninja -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+
+      - name: Build Dependencies
+        run: cmake --build dependencies/build
+
+      - name: Configure Project
+        run: cmake -B build "-DCMAKE_PREFIX_PATH=dependencies/install"
+
+      - name: Build Project
+        run: cmake --build build
+
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-24.04
+    needs: [build]
+    if: always()
+    steps:
+      - uses: geekyeggo/delete-artifact@v5
+        continue-on-error: true
+        with:
+          name: "Temp *"
+
+      - name: Pipeline failed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
