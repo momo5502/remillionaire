@@ -49,6 +49,6 @@ if(NOT USE_EXTERNAL_LLVM)
     include(llvm.cmake)
 endif()
 
-simple_git(https://github.com/lifting-bits/remill v6.0.0
+simple_git(https://github.com/lifting-bits/remill "2302aa8c8ae78c30d0438752bf7d1661fdedc44f"
     "-DREMILL_ENABLE_TESTING:STRING=OFF"
 )
