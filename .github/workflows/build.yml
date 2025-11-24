@@ -27,20 +27,13 @@ jobs:
           - platform: Windows x86_64
             runner: windows-latest
             devcmd_arch: x64
-            c_compiler: clang-cl
-            cxx_compiler: clang-cl
           - platform: macOS arm64
             runner: macos-latest
-            c_compiler: clang
-            cxx_compiler: clang++
     steps:
       - name: Checkout Source
         uses: actions/checkout@v5
         with:
           submodules: recursive
-
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v6
 
       - name: Install LLVM
         if: ${{ startsWith(matrix.platform, 'macOS') }}
@@ -68,14 +61,14 @@ jobs:
           arch: ${{ matrix.devcmd_arch }}
 
       - name: Configure Dependencies
-        run: cmake -B dependencies/build -S dependencies -G Ninja -DUSE_EXTERNAL_LLVM=ON "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX"
+        run: cmake -G Ninja -S dependencies -B dependencies/build -DUSE_EXTERNAL_LLVM=ON "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX" -DCMAKE_BUILD_TYPE=RelWithDebInfo
         shell: bash
 
       - name: Build Dependencies
         run: cmake --build dependencies/build
 
       - name: Configure Project
-        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX;$PWD/dependencies/install"
+        run: cmake -G Ninja -B build "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX;$PWD/dependencies/install" -DCMAKE_BUILD_TYPE=RelWithDebInfo
         shell: bash
 
       - name: Build Project
