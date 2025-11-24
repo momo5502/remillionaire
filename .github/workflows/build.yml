@@ -42,11 +42,20 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@v6
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v2
+      - name: Install LLVM
+        if: ${{ startsWith(matrix.platform, 'macOS') }}
+        run: |
+          brew install llvm@19
+          LLVM_PREFIX=$(brew --prefix llvm@19)
+          echo "LLVM_PREFIX=$LLVM_PREFIX" >> $GITHUB_ENV
+
+      - name: Install LLVM
         if: ${{ startsWith(matrix.platform, 'Windows') }}
-        with:
-          version: "19.1.7"
+        run: |
+          curl.exe -L -o llvm.7z https://github.com/LLVMParty/remill-template/releases/download/llvm-prebuild/llvm-19.1.6-install.7z
+          7z x llvm.7z -ollvm-install
+          echo "LLVM_PREFIX=$PWD/llvm-install" >> $env:GITHUB_ENV
+        shell: pwsh
 
       - name: Enable Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1.13.0
@@ -55,13 +64,15 @@ jobs:
           arch: ${{ matrix.devcmd_arch }}
 
       - name: Configure Dependencies
-        run: cmake -B dependencies/build -S dependencies -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+        run: cmake -B dependencies/build -S dependencies -G Ninja -DUSE_EXTERNAL_LLVM=ON "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+        shell: bash
 
       - name: Build Dependencies
         run: cmake --build dependencies/build
 
       - name: Configure Project
-        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DCMAKE_PREFIX_PATH=dependencies/install" -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DCMAKE_PREFIX_PATH=$LLVM_PREFIX;$PWD/dependencies/install" -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+        shell: bash
 
       - name: Build Project
         run: cmake --build build
