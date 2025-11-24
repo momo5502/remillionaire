@@ -55,13 +55,13 @@ jobs:
           arch: ${{ matrix.devcmd_arch }}
 
       - name: Configure Dependencies
-        run: cmake -B dependencies/build -S dependencies -G Ninja -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
+        run: cmake -B dependencies/build -S dependencies -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx_compiler }}
 
       - name: Build Dependencies
         run: cmake --build dependencies/build
 
       - name: Configure Project
-        run: cmake -B build "-DCMAKE_PREFIX_PATH=dependencies/install"
+        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo "-DCMAKE_PREFIX_PATH=dependencies/install"
 
       - name: Build Project
         run: cmake --build build
