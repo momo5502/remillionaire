@@ -19,6 +19,7 @@ jobs:
       matrix:
         platform:
           - Windows x86_64
+          - Linux x86_64
           - macOS arm64
         configuration:
           #- Debug
@@ -27,8 +28,12 @@ jobs:
           - platform: Windows x86_64
             runner: windows-latest
             devcmd_arch: x64
-            c_compiler: clang-cl
-            cxx_compiler: clang-cl
+            c_compiler: clang
+            cxx_compiler: clang++
+          - platform: Linux x86_64
+            runner: ubuntu-latest
+            c_compiler: clang
+            cxx_compiler: clang++
           - platform: macOS arm64
             runner: macos-latest
             c_compiler: clang
@@ -44,9 +49,9 @@ jobs:
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v2
-        if: ${{ startsWith(matrix.platform, 'Windows') }}
+        if: ${{ !startsWith(matrix.platform, 'Windows') }}
         with:
-          version: "20"
+          version: "19.1.7"
 
       - name: Enable Developer Command Prompt
         uses: ilammy/msvc-dev-cmd@v1.13.0
